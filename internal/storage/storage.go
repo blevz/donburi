@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"github.com/apache/arrow/go/v18/arrow/memory"
 	"unsafe"
 
 	"github.com/yohamta/donburi/component"
@@ -12,25 +13,28 @@ import (
 // Second dimension is the component index.
 // The component index is used to access the component data in the archetype.
 type Storage struct {
-	storages [][]unsafe.Pointer
+	allocator memory.Allocator
+	storages  [][]unsafe.Pointer
 }
 
 // NewStorage creates a new empty structure that stores the pointer to data of each component.
 func NewStorage() *Storage {
 	return &Storage{
-		storages: make([][]unsafe.Pointer, 256),
+		allocator: memory.NewGoAllocator(),
+		storages:  make([][]unsafe.Pointer, 256),
 	}
 }
 
 // PushComponent stores the new data of the component in the archetype.
 func (cs *Storage) PushComponent(component component.IComponentType, archetypeIndex ArchetypeIndex) {
+
 	if len(cs.storages) <= int(archetypeIndex) {
 		cs.ensureCapacity()
 	}
 	if v := cs.storages[archetypeIndex]; v == nil {
 		cs.storages[archetypeIndex] = []unsafe.Pointer{}
 	}
-	// TODO: optimize to avoid allocation
+	// Create new component value
 	componentValue := component.New()
 	cs.storages[archetypeIndex] = append(cs.storages[archetypeIndex], componentValue)
 }
